@@ -1,0 +1,7 @@
+Did:
+1. Replace \t with 4 spaces.
+
+To Do:
+1. Replace loops with array jobs run from command line
+2. Provide option to switch number of cpus per task
+

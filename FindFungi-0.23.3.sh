@@ -10,66 +10,70 @@ StartTime="Pipeline initiated at $(date)"
 
 ### Precautionary measures before running analysis
 if [ $# -eq 0 ]; then
-	echo "No arguments provided"
-	exit 1
+    echo "No arguments provided"
+    exit 1
 fi
 
 ###Declare paths for FindFungi analysis, scripts, tools etc.
-x=$1
-z=$2
+export x=$1
+export z=$2
 
 
 ##### USER INPUT REQUIRED:
-ScriptPath=/opt/FindFungi/0.23/FindFungi-v0.23.3 #Location of downloaded python and shell scripts
-PreDir=$z                                      #Location you want FindFungi to build the analysis
-KrakenDir=/opt/FindFungi/0.23/db/Kraken_32DB/  #Location of the 32 downloaded Kraken databases
-FungTaxDir=/opt/FindFungi/0.23/db/FungalGenomeDatabases_EqualContigs/ #Location of the Fungal taxids and PipelineSummary files from GitHub
-BLAST_DB_Dir=/reference/blast_database/blast/db/nt/19nov18/ #Location of the 949 downloaded BLAST databases
+export ScriptPath=/opt/FindFungi/0.23/FindFungi-v0.23.3 #Location of downloaded python and shell scripts
+export PreDir=$z                                      #Location you want FindFungi to build the analysis
+export KrakenDir=/opt/FindFungi/0.23/db/Kraken_32DB/  #Location of the 32 downloaded Kraken databases
+export FungTaxDir=/opt/FindFungi/0.23/db/FungalGenomeDatabases_EqualContigs/ #Location of the Fungal taxids and PipelineSummary files from GitHub
+export BLAST_DB_Dir=/reference/blast_database/blast/db/nt/19nov18/ #Location of the 949 downloaded BLAST databases
 #####
 
 
-Dir=$PreDir/FindFungi 
+export Dir=$PreDir/FindFungi 
 
 if [ ! -d $PreDir ]; then
-	mkdir $PreDir
-	echo "Number of reads in the raw input: " >> $PreDir/Run_Statistics.txt
-	LinesInReadsIn=$(wc -l $x | awk '{print $1}') 
-	ReadsIn=$((LinesInReadsIn/4))
-	echo $ReadsIn >> $PreDir/Run_Statistics.txt
-	mkdir $PreDir/ReadTrimming
-	# bsub -K -q C skewer -l 30 -q 15 -t 30 -o $PreDir/ReadTrimming/$z $x &
-	skewer -l 30 -q 15 -t 30 -o $PreDir/ReadTrimming/$z $x &
-	wait
-	echo "Number of reads after trimming: " >> $PreDir/Run_Statistics.txt
-	LinesInReadsLeft=$(wc -l $PreDir/ReadTrimming/$z-trimmed.fastq | awk '{print $1}') 
-	ReadsLeft=$((LinesInReadsLeft/4))
-	echo $ReadsLeft >> $PreDir/Run_Statistics.txt
-	mkdir $PreDir/FASTA
-	sed -n '1~4s/^@/>/p;2~4p' $PreDir/ReadTrimming/$z-trimmed.fastq > $PreDir/FASTA/$z.fna #Convert FASTQ to FASTA
-	LineCt=$(wc -l $PreDir/FASTA/$z.fna | awk '{print $1}')
-	SplitN=$((LineCt/32 + 1))
-	SplitI=$(printf "%.0f" $SplitN)
-	split -l $SplitI $PreDir/FASTA/$z.fna $PreDir/FASTA/Split.
-	for d in $PreDir/FASTA/*Split.*; do 
-		# bsub -K -q C sed -i 's/\ /_/g' $d & #Replace whitespace with underscore
-		sed -i 's/\ /_/g' $d & #Replace whitespace with underscore
-	done
-	wait
-	cat $PreDir/FASTA/*Split.* > $PreDir/FASTA/$z.final.fna  
-	mkdir $Dir
-	mkdir $Dir/Processing
-	mkdir $Dir/Processing/SplitFiles_Kraken
-	mkdir $Dir/Results
-	mkdir $Dir/Results/BLAST_Processing
-	mkdir $Dir/bsub_reports
+    mkdir $PreDir
+    echo "Number of reads in the raw input: " >> $PreDir/Run_Statistics.txt
+    LinesInReadsIn=$(wc -l $x | awk '{print $1}') 
+    ReadsIn=$((LinesInReadsIn/4))
+    echo $ReadsIn >> $PreDir/Run_Statistics.txt
+    mkdir $PreDir/ReadTrimming
+    # bsub -K -q C skewer -l 30 -q 15 -t 30 -o $PreDir/ReadTrimming/$z $x &
+    skewer -l 30 -q 15 -t 30 -o $PreDir/ReadTrimming/$z $x &
+    wait
+    echo "Number of reads after trimming: " >> $PreDir/Run_Statistics.txt
+    LinesInReadsLeft=$(wc -l $PreDir/ReadTrimming/$z-trimmed.fastq | awk '{print $1}') 
+    ReadsLeft=$((LinesInReadsLeft/4))
+    echo $ReadsLeft >> $PreDir/Run_Statistics.txt
+    mkdir $PreDir/FASTA
+    sed -n '1~4s/^@/>/p;2~4p' $PreDir/ReadTrimming/$z-trimmed.fastq > $PreDir/FASTA/$z.fna #Convert FASTQ to FASTA
+    LineCt=$(wc -l $PreDir/FASTA/$z.fna | awk '{print $1}')
+    SplitN=$((LineCt/32 + 1))
+    SplitI=$(printf "%.0f" $SplitN)
+    split -l $SplitI $PreDir/FASTA/$z.fna $PreDir/FASTA/Split.
+    for d in $PreDir/FASTA/*Split.*; do 
+        # bsub -K -q C sed -i 's/\ /_/g' $d & #Replace whitespace with underscore
+        sed -i 's/\ /_/g' $d & #Replace whitespace with underscore
+    done
+    wait
+    cat $PreDir/FASTA/*Split.* > $PreDir/FASTA/$z.final.fna  
+    mkdir $Dir
+    mkdir $Dir/Processing
+    mkdir $Dir/Processing/SplitFiles_Kraken
+    mkdir $Dir/Results
+    mkdir $Dir/Results/BLAST_Processing
+    mkdir $Dir/bsub_reports
 
 ### Release the Kraken 
-for i in $(seq 1 32); do
-	# bsub -K -q C kraken --db $KrakenDir/Kraken_$i --threads 30 --fasta-input $PreDir/FASTA/$z.final.fna --output $Dir/Processing/SplitFiles_Kraken/$z.$i &
-	echo "kraken --db $KrakenDir/Kraken_$i --threads 20 --fasta-input $PreDir/FASTA/$z.final.fna --output $Dir/Processing/SplitFiles_Kraken/$z.$i"
-	kraken --preload --db $KrakenDir/Kraken_$i --threads 20 --fasta-input $PreDir/FASTA/$z.final.fna --output $Dir/Processing/SplitFiles_Kraken/$z.$i &
-done	
-wait
+#for i in $(seq 1 32); do
+#    # bsub -K -q C kraken --db $KrakenDir/Kraken_$i --threads 30 --fasta-input $PreDir/FASTA/$z.final.fna --output $Dir/Processing/SplitFiles_Kraken/$z.$i &
+#    echo "kraken --db $KrakenDir/Kraken_$i --threads 20 --fasta-input $PreDir/FASTA/$z.final.fna --output $Dir/Processing/SplitFiles_Kraken/$z.$i"
+#    kraken --preload --db $KrakenDir/Kraken_$i --threads 20 --fasta-input $PreDir/FASTA/$z.final.fna --output $Dir/Processing/SplitFiles_Kraken/$z.$i &
+#done    
+#wait
+sbatch -W --array=1-32 --cpus-per-task=20 --job-name=kraken_Fungi --wrap='kraken --preload --db $KrakenDir/Kraken_$SLURM_ARRAY_TASK_ID --threads 20 --fasta-input $PreDir/FASTA/$z.final.fna --output $Dir/Processing/SplitFiles_Kraken/$z.$SLURM_ARRAY_TASK_ID'
+
+
+
 for d in $Dir/Processing/SplitFiles_Kraken/*; do
     File=$(basename $d)
     grep ^C $d > $Dir/Processing/$File.Classified.tsv 
@@ -88,9 +92,9 @@ SplitNum=$((LineCount/32 + 1))
 SplitInt=$(printf "%.0f" $SplitNum)
 
 for d in $Dir/Processing/SplitFiles_Kraken/*; do #Sort individual Kraken output files
-	File=$(basename $d)
-	# bsub -K -q C sort_parallel --parallel 16 -o $Dir/Processing/SplitFiles_Kraken/sorted_$File -k2,2 $d & 
-	sort_parallel --parallel 16 -o $Dir/Processing/SplitFiles_Kraken/sorted_$File -k2,2 $d &
+    File=$(basename $d)
+    # bsub -K -q C sort_parallel --parallel 16 -o $Dir/Processing/SplitFiles_Kraken/sorted_$File -k2,2 $d & 
+    sort_parallel --parallel 16 -o $Dir/Processing/SplitFiles_Kraken/sorted_$File -k2,2 $d &
 done
 wait
 # bsub -K -q C sort_parallel --parallel 16 -o $Dir/Processing/sorted.$z.All-Kraken-Results.tsv -m -k2,2 $Dir/Processing/SplitFiles_Kraken/*sorted* & #Merge and sort all Kraken output files
@@ -127,34 +131,34 @@ wait
 
 ### Gather FASTA reads for each taxid predicted
 for d in $Dir/Processing/ReadNames.*; do
-	File=$(basename $d)
-	Taxid=$(echo $File | awk -F '.' '{print $2}')
-	# bsub -K -q C -e $PreDir/FindFungi/bsub_reports/ReadNames-to-FASTA.$Taxid.stderr -o $Dir/Processing/ReadNames_bsub.$Taxid.fsa awk -v reads="$Dir/Processing/ReadNames.$Taxid.txt" -F "\t" 'BEGIN{while((getline k < reads)>0)i[k]=1}{gsub("^>","",$0); if(i[$1]){print ">"$1"\n"$2}}' $Dir/Processing/Reads-From-Kraken-Output.$z.Reformatted.fsa &
+    File=$(basename $d)
+    Taxid=$(echo $File | awk -F '.' '{print $2}')
+    # bsub -K -q C -e $PreDir/FindFungi/bsub_reports/ReadNames-to-FASTA.$Taxid.stderr -o $Dir/Processing/ReadNames_bsub.$Taxid.fsa awk -v reads="$Dir/Processing/ReadNames.$Taxid.txt" -F "\t" 'BEGIN{while((getline k < reads)>0)i[k]=1}{gsub("^>","",$0); if(i[$1]){print ">"$1"\n"$2}}' $Dir/Processing/Reads-From-Kraken-Output.$z.Reformatted.fsa &
     ### Ali - opportunity for failure here?  I split up this command
-	awk -v reads="$Dir/Processing/ReadNames.$Taxid.txt" -F "\t" 'BEGIN{while((getline k < reads)>0)i[k]=1}{gsub("^>","",$0); if(i[$1]){print ">"$1"\n"$2}}' $Dir/Processing/Reads-From-Kraken-Output.$z.Reformatted.fsa >> $PreDir/FindFungi/bsub_reports/ReadNames-to-FASTA.$Taxid.stderr &
-	awk -v reads="$Dir/Processing/ReadNames.$Taxid.txt" -F "\t" 'BEGIN{while((getline k < reads)>0)i[k]=1}{gsub("^>","",$0); if(i[$1]){print ">"$1"\n"$2}}' $Dir/Processing/Reads-From-Kraken-Output.$z.Reformatted.fsa >> $Dir/Processing/ReadNames_bsub.$Taxid.fsa &
+    awk -v reads="$Dir/Processing/ReadNames.$Taxid.txt" -F "\t" 'BEGIN{while((getline k < reads)>0)i[k]=1}{gsub("^>","",$0); if(i[$1]){print ">"$1"\n"$2}}' $Dir/Processing/Reads-From-Kraken-Output.$z.Reformatted.fsa >> $PreDir/FindFungi/bsub_reports/ReadNames-to-FASTA.$Taxid.stderr &
+    awk -v reads="$Dir/Processing/ReadNames.$Taxid.txt" -F "\t" 'BEGIN{while((getline k < reads)>0)i[k]=1}{gsub("^>","",$0); if(i[$1]){print ">"$1"\n"$2}}' $Dir/Processing/Reads-From-Kraken-Output.$z.Reformatted.fsa >> $Dir/Processing/ReadNames_bsub.$Taxid.fsa &
 done
 wait
 
 ### BLAST against the genome of the predicted species
 for d in $Dir/Processing/ReadNames_bsub.*.fsa; do
-	File=$(basename $d)
-	Taxid=$(echo $File | awk -F '.' '{print $2}')
-	tail -n +31 $d | head -n -6 > $Dir/Processing/ReadNames.$Taxid.fsa
-	# bsub -K -q C blastn -task megablast -query $Dir/Processing/ReadNames.$Taxid.fsa -db $BLAST_DB_Dir/Taxid-$Taxid -out $Dir/Results/BLAST_Processing/BLAST.$Taxid -evalue 1E-20 -num_threads 30 -outfmt 6 &
-	blastn -task megablast -query $Dir/Processing/ReadNames.$Taxid.fsa -db $BLAST_DB_Dir/Taxid-$Taxid -out $Dir/Results/BLAST_Processing/BLAST.$Taxid -evalue 1E-20 -num_threads 20 -outfmt 6 &
+    File=$(basename $d)
+    Taxid=$(echo $File | awk -F '.' '{print $2}')
+    tail -n +31 $d | head -n -6 > $Dir/Processing/ReadNames.$Taxid.fsa
+    # bsub -K -q C blastn -task megablast -query $Dir/Processing/ReadNames.$Taxid.fsa -db $BLAST_DB_Dir/Taxid-$Taxid -out $Dir/Results/BLAST_Processing/BLAST.$Taxid -evalue 1E-20 -num_threads 30 -outfmt 6 &
+    blastn -task megablast -query $Dir/Processing/ReadNames.$Taxid.fsa -db $BLAST_DB_Dir/Taxid-$Taxid -out $Dir/Results/BLAST_Processing/BLAST.$Taxid -evalue 1E-20 -num_threads 20 -outfmt 6 &
 done
 wait
 
 ### Get the best hit for every read and determine how many chromosomes these reads hit, and how many times
 ### Calculate the Pearson coefficient of skewness for each species, and gather together all species skewness scores
 for d in $Dir/Results/BLAST_Processing/BLAST*; do
-	File=$(basename $d)
-	Taxid="${File#BLAST.}"
-	awk '! a[$1]++' $d > $Dir/Results/BLAST_Processing/Top-Hits.$File
-	awk '{print $2}' $Dir/Results/BLAST_Processing/Top-Hits.$File | sort | uniq -c > $Dir/Results/BLAST_Processing/Hit-Distribution.$File
-	# bsub -K -q C python2.7 $ScriptPath/Skewness-Calculator_V4.py $Dir/Results/BLAST_Processing/Hit-Distribution.$File $Dir/Results/BLAST_Processing/Skewness.$File &
-	python2.7 $ScriptPath/Skewness-Calculator_V4.py $Dir/Results/BLAST_Processing/Hit-Distribution.$File $Dir/Results/BLAST_Processing/Skewness.$File &
+    File=$(basename $d)
+    Taxid="${File#BLAST.}"
+    awk '! a[$1]++' $d > $Dir/Results/BLAST_Processing/Top-Hits.$File
+    awk '{print $2}' $Dir/Results/BLAST_Processing/Top-Hits.$File | sort | uniq -c > $Dir/Results/BLAST_Processing/Hit-Distribution.$File
+    # bsub -K -q C python2.7 $ScriptPath/Skewness-Calculator_V4.py $Dir/Results/BLAST_Processing/Hit-Distribution.$File $Dir/Results/BLAST_Processing/Skewness.$File &
+    python2.7 $ScriptPath/Skewness-Calculator_V4.py $Dir/Results/BLAST_Processing/Hit-Distribution.$File $Dir/Results/BLAST_Processing/Skewness.$File &
 done
 wait
 cat $Dir/Results/BLAST_Processing/Skewness* > $Dir/Results/BLAST_Processing/All-Skewness-Scores 
