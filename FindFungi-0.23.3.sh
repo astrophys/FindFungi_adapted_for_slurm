@@ -23,8 +23,8 @@ export z=$2
 export ScriptPath=/opt/FindFungi/0.23/FindFungi-v0.23.3 #Location of downloaded python and shell scripts
 export PreDir=$z                                      #Location you want FindFungi to build the analysis
 export KrakenDir=/opt/FindFungi/0.23/db/Kraken_32DB/  #Location of the 32 downloaded Kraken databases
-export FungTaxDir=/opt/FindFungi/0.23/db/FungalGenomeDatabases_EqualContigs/ #Location of the Fungal taxids and PipelineSummary files from GitHub
-export BLAST_DB_Dir=/reference/blast_database/blast/db/nt/19nov18/ #Location of the 949 downloaded BLAST databases
+export FungTaxDir=/gpfs0/export/opt/FindFungi/0.23/FindFungi-v0.23.3/  #Location of the Fungal taxids and PipelineSummary files from GitHub
+export BLAST_DB_Dir=/opt/FindFungi/0.23/db/FungalGenomeDatabases_EqualContigs/ #Location of the 949 downloaded BLAST databases
 #####
 
 
@@ -70,8 +70,9 @@ if [ ! -d $PreDir ]; then
 #    kraken --preload --db $KrakenDir/Kraken_$i --threads 20 --fasta-input $PreDir/FASTA/$z.final.fna --output $Dir/Processing/SplitFiles_Kraken/$z.$i &
 #done    
 #wait
-sbatch -W --array=1-32 --cpus-per-task=20 --job-name=kraken_Fungi --wrap='kraken --preload --db $KrakenDir/Kraken_$SLURM_ARRAY_TASK_ID --threads 20 --fasta-input $PreDir/FASTA/$z.final.fna --output $Dir/Processing/SplitFiles_Kraken/$z.$SLURM_ARRAY_TASK_ID'
-
+echo "Starting : Kraken : $(date)"
+sbatch -W --array=1-32 --cpus-per-task=10 --job-name=kraken_Fungi --wrap='kraken --preload --db $KrakenDir/Kraken_$SLURM_ARRAY_TASK_ID --threads 10 --fasta-input $PreDir/FASTA/$z.final.fna --output $Dir/Processing/SplitFiles_Kraken/$z.$SLURM_ARRAY_TASK_ID'
+echo "Kraken : Ended: $(date)"
 
 
 for d in $Dir/Processing/SplitFiles_Kraken/*; do
@@ -91,14 +92,18 @@ LineCount=$(wc -l $Dir/Processing/AllClassified_$z | awk '{print $1}')
 SplitNum=$((LineCount/32 + 1))
 SplitInt=$(printf "%.0f" $SplitNum)
 
+echo "Starting : Sorting SplitFiles_Kraken : $(date)"
 for d in $Dir/Processing/SplitFiles_Kraken/*; do #Sort individual Kraken output files
     File=$(basename $d)
     # bsub -K -q C sort_parallel --parallel 16 -o $Dir/Processing/SplitFiles_Kraken/sorted_$File -k2,2 $d & 
-    sort_parallel --parallel 16 -o $Dir/Processing/SplitFiles_Kraken/sorted_$File -k2,2 $d &
+    sort -k2,2 $d > $Dir/Processing/SplitFiles_Kraken/sorted_$File &
 done
 wait
+echo "Ending : SplitFiles_Kraken : $(date)"
+
+
 # bsub -K -q C sort_parallel --parallel 16 -o $Dir/Processing/sorted.$z.All-Kraken-Results.tsv -m -k2,2 $Dir/Processing/SplitFiles_Kraken/*sorted* & #Merge and sort all Kraken output files
-sort_parallel --parallel 16 -o $Dir/Processing/sorted.$z.All-Kraken-Results.tsv -m -k2,2 $Dir/Processing/SplitFiles_Kraken/*sorted* #Merge and sort all Kraken output files
+cat $Dir/Processing/SplitFiles_Kraken/*sorted* | sort -k2,2 > $Dir/Processing/sorted.$z.All-Kraken-Results.tsv 
 # wait
 # bsub -K -q C python2.7 $ScriptPath/Kraken32-to-Consensus.py $Dir/Processing/sorted.$z.All-Kraken-Results.tsv $Dir/Processing/Consensus.sorted.$z.All-Kraken-Results.tsv &
 python2.7 $ScriptPath/Kraken32-to-Consensus.py $Dir/Processing/sorted.$z.All-Kraken-Results.tsv $Dir/Processing/Consensus.sorted.$z.All-Kraken-Results.tsv 
@@ -107,9 +112,11 @@ python2.7 $ScriptPath/Kraken32-to-Consensus.py $Dir/Processing/sorted.$z.All-Kra
 ### Count number of predictions for each taxonomic unit and sort
 awk '{print $3}' $Dir/Processing/Consensus.sorted.$z.All-Kraken-Results.tsv | sort -n | uniq -c | sort -k1,1nr > $Dir/Processing/Consensus.sorted.$z.All-Kraken-Results.TopTaxonomies.tsv
 
+
 ### Using Kraken taxid predictions and their respective read-counts,
 ### BLAST reads against their predicted genomes (cut-off is  10 reads predicted per species)
 ### Ignore all higher taxa e.g. genus, family, class etc.
+echo "Starting : Blasting Kraken : $(date)"
 while read p; do
     ReadNumber=$(echo $p | awk -F ' ' '{print $1}')
     Taxid=$(echo $p | awk -F ' ' '{print $2}')
@@ -128,8 +135,11 @@ while read p; do
     fi
 done < $Dir/Processing/Consensus.sorted.$z.All-Kraken-Results.TopTaxonomies.tsv
 wait
+echo "Ending : Blasting Kraken : $(date)"
+
 
 ### Gather FASTA reads for each taxid predicted
+echo "Starting : Gather fasta : $(date)"
 for d in $Dir/Processing/ReadNames.*; do
     File=$(basename $d)
     Taxid=$(echo $File | awk -F '.' '{print $2}')
@@ -139,8 +149,10 @@ for d in $Dir/Processing/ReadNames.*; do
     awk -v reads="$Dir/Processing/ReadNames.$Taxid.txt" -F "\t" 'BEGIN{while((getline k < reads)>0)i[k]=1}{gsub("^>","",$0); if(i[$1]){print ">"$1"\n"$2}}' $Dir/Processing/Reads-From-Kraken-Output.$z.Reformatted.fsa >> $Dir/Processing/ReadNames_bsub.$Taxid.fsa &
 done
 wait
+echo "Ending : Gather fasta : $(date)"
 
 ### BLAST against the genome of the predicted species
+echo "Starting : BLAST against the genome : $(date)"
 for d in $Dir/Processing/ReadNames_bsub.*.fsa; do
     File=$(basename $d)
     Taxid=$(echo $File | awk -F '.' '{print $2}')
@@ -149,9 +161,11 @@ for d in $Dir/Processing/ReadNames_bsub.*.fsa; do
     blastn -task megablast -query $Dir/Processing/ReadNames.$Taxid.fsa -db $BLAST_DB_Dir/Taxid-$Taxid -out $Dir/Results/BLAST_Processing/BLAST.$Taxid -evalue 1E-20 -num_threads 20 -outfmt 6 &
 done
 wait
+echo "Ending : BLAST against the genome : $(date)"
 
 ### Get the best hit for every read and determine how many chromosomes these reads hit, and how many times
 ### Calculate the Pearson coefficient of skewness for each species, and gather together all species skewness scores
+echo "Starting : Calculate Pearson coefficient : $(date)"
 for d in $Dir/Results/BLAST_Processing/BLAST*; do
     File=$(basename $d)
     Taxid="${File#BLAST.}"
@@ -162,6 +176,7 @@ for d in $Dir/Results/BLAST_Processing/BLAST*; do
 done
 wait
 cat $Dir/Results/BLAST_Processing/Skewness* > $Dir/Results/BLAST_Processing/All-Skewness-Scores 
+echo "Ending : Calculate Pearson coefficient : $(date)"
 
 ### Combine Kraken results with Skewness scores
 # bsub -K -q C python2.7 $ScriptPath/Consensus-CrossRef-Skewness_V2.py $Dir/Processing/Consensus.sorted.$z.All-Kraken-Results.tsv $Dir/Results/BLAST_Processing/All-Skewness-Scores $Dir/Results/Final_Results_$z.tsv & 
@@ -222,7 +237,8 @@ ps2pdf $Dir/Results/WordcloudError.ps $Dir/Results/$z.Wordcloud.pdf
 dot -Tps $Dir/Results/$z.gv -o $Dir/Results/$z.TreeLineage.ps
 gs -sDEVICE=pdfwrite -sOutputFile=$Dir/Results/$z.TreeLineage.pdf -dBATCH -dNOPAUSE $Dir/Results/$z.TreeLineage.ps
 pdfcrop $Dir/Results/$z.TreeLineage.pdf $Dir/Results/Cropped.$z.TreeLineage.pdf
-Rscript-3.3.3 $Dir/Results/$z.WordCloud.R
+#Rscript-3.3.3 $Dir/Results/$z.WordCloud.R
+/opt/R/3.4.2/bin/Rscript $Dir/Results/$z.WordCloud.R
 cat $FungTaxDir/PipelineSummary.txt $PreDir/SummaryFile.txt $PreDir/Run_Statistics.txt > $PreDir/FindFungi-TextFile.txt
 enscript -B -o $PreDir/FindFungi-TextFile.ps -f Times-Roman12 $PreDir/FindFungi-TextFile.txt
 ps2pdf $PreDir/FindFungi-TextFile.ps $PreDir/FindFungi-TextFile.pdf
