@@ -13,6 +13,7 @@ if [ $# -eq 0 ]; then
     echo "No arguments provided"
     exit 1
 fi
+export NUM_THREADS=10
 
 ###Declare paths for FindFungi analysis, scripts, tools etc.
 export x=$1
@@ -37,9 +38,11 @@ if [ ! -d $PreDir ]; then
     ReadsIn=$((LinesInReadsIn/4))
     echo $ReadsIn >> $PreDir/Run_Statistics.txt
     mkdir $PreDir/ReadTrimming
-    # bsub -K -q C skewer -l 30 -q 15 -t 30 -o $PreDir/ReadTrimming/$z $x &
-    skewer -l 30 -q 15 -t 30 -o $PreDir/ReadTrimming/$z $x &
-    wait
+
+    echo "Skewer starting : $(date)"
+    skewer -l 30 -q 15 -t ${NUM_THREADS} -o $PreDir/ReadTrimming/$z $x 
+    echo "Skewer ended: $(date)"
+
     echo "Number of reads after trimming: " >> $PreDir/Run_Statistics.txt
     LinesInReadsLeft=$(wc -l $PreDir/ReadTrimming/$z-trimmed.fastq | awk '{print $1}') 
     ReadsLeft=$((LinesInReadsLeft/4))
@@ -50,11 +53,14 @@ if [ ! -d $PreDir ]; then
     SplitN=$((LineCt/32 + 1))
     SplitI=$(printf "%.0f" $SplitN)
     split -l $SplitI $PreDir/FASTA/$z.fna $PreDir/FASTA/Split.
+
+    echo "Sed starting : $(date)"
     for d in $PreDir/FASTA/*Split.*; do 
         # bsub -K -q C sed -i 's/\ /_/g' $d & #Replace whitespace with underscore
         sed -i 's/\ /_/g' $d & #Replace whitespace with underscore
     done
     wait
+    echo "Sed ending : $(date)"
     cat $PreDir/FASTA/*Split.* > $PreDir/FASTA/$z.final.fna  
     mkdir $Dir
     mkdir $Dir/Processing
