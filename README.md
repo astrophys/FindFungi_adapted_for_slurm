@@ -13,7 +13,7 @@ GPFS.
 3. Removed all instances of LSF's bsub
 4. Used sbatch array job to offload the Kraken work onto separate nodes.
 
-The majority of the work seemed to run fine on our compute nodes.
+The majority of the work seemed to run fine on a single compute node.
 The Kraken step was the only part that needed off loaded to additional
 compute nodes.
 
@@ -36,9 +36,14 @@ from the Paul's recommendations.
 * R-3.4.2 (packages: wordcloud)
 * graphviz 2.26.0 (installed via yum)
 
+I also needed to create symlinks in the Kraken_32DB directory
+(downloaded from http://bioinformatics.czc.hokudai.ac.jp/findfungi/),
+mapping Chunks_i -> Kraken_i (i is an integer from 1->32). I suspect that this is a
+result of the way the original database files were generated.
+
 ## Acknowledgements:
 Thank you Paul Donovan and Gabriel Gonzalez for all your help and support getting
-this installed on our cluster.
+this installed on our cluster. 
 
 
 ## License
