@@ -1,7 +1,3 @@
-# FindFungi_adapted_for_slurm
-FindFungi adapted from IBM's LSF to SLURM
-=======
-
 # FindFungi-v0.23.3
 I made small changes to Paul Donovan's FindFungi Code
 (https://github.com/GiantSpaceRobot/FindFungi/tree/master/FindFungi-v0.23.3)
@@ -39,11 +35,6 @@ from the Paul's recommendations.
 * ncbi blast 2.2.31+
 * R-3.4.2 (packages: wordcloud)
 * graphviz 2.26.0 (installed via yum)
-
-## Contributors
-
-* Paul Donovan, PhD (email: pauldonovandonegal@gmail.com)
-* Gabriel Gonzalez, PhD (e-mail: gagonzalez@czc.hokudai.ac.jp)
 
 ## License
 This project is licensed under the MIT License.
