@@ -36,5 +36,10 @@ from the Paul's recommendations.
 * R-3.4.2 (packages: wordcloud)
 * graphviz 2.26.0 (installed via yum)
 
+## Acknowledgements:
+Thank you Paul Donovan and Gabriel Gonzalez for all your help and support getting
+this installed on our cluster.
+
+
 ## License
 This project is licensed under the MIT License.
