@@ -56,7 +56,8 @@ if [ ! -d $PreDir ]; then
 
     echo "Sed starting : $(date)"
     for d in $PreDir/FASTA/*Split.*; do 
-        # bsub -K -q C sed -i 's/\ /_/g' $d & #Replace whitespace with underscore
+        #Replace whitespace with underscore
+        # sbatch -W --wrap='sed -i "s/\ /_/g" $d' & # Untested - can be done on one node
         sed -i 's/\ /_/g' $d & #Replace whitespace with underscore
     done
     wait
@@ -79,6 +80,7 @@ if [ ! -d $PreDir ]; then
 echo "Starting : Kraken : $(date)"
 sbatch -W --array=1-32 --cpus-per-task=10 --job-name=kraken_Fungi --wrap='kraken --preload --db $KrakenDir/Kraken_$SLURM_ARRAY_TASK_ID --threads 10 --fasta-input $PreDir/FASTA/$z.final.fna --output $Dir/Processing/SplitFiles_Kraken/$z.$SLURM_ARRAY_TASK_ID'
 echo "Kraken : Ended: $(date)"
+echo ""
 
 
 for d in $Dir/Processing/SplitFiles_Kraken/*; do
