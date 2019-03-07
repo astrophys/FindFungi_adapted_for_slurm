@@ -167,7 +167,7 @@ for d in $Dir/Processing/ReadNames_bsub.*.fsa; do
     tail -n +31 $d | head -n -6 > $Dir/Processing/ReadNames.$Taxid.fsa
     # bsub -K -q C blastn -task megablast -query $Dir/Processing/ReadNames.$Taxid.fsa -db $BLAST_DB_Dir/Taxid-$Taxid -out $Dir/Results/BLAST_Processing/BLAST.$Taxid -evalue 1E-20 -num_threads 30 -outfmt 6 &
     #blastn -task megablast -query $Dir/Processing/ReadNames.$Taxid.fsa -db $BLAST_DB_Dir/Taxid-$Taxid -out $Dir/Results/BLAST_Processing/BLAST.$Taxid -evalue 1E-20 -num_threads 20 -outfmt 6 &
-    sbatch -W --job-name=${Taxid} --wrap='blastn -task megablast -query $Dir/Processing/ReadNames.$Taxid.fsa -db $BLAST_DB_Dir/Taxid-$Taxid -out $Dir/Results/BLAST_Processing/BLAST.$Taxid -evalue 1E-20 -num_threads 20 -outfmt 6' & 
+    sbatch -W --job-name=${Taxid} --cpus-per-task=20 --wrap='blastn -task megablast -query $Dir/Processing/ReadNames.$Taxid.fsa -db $BLAST_DB_Dir/Taxid-$Taxid -out $Dir/Results/BLAST_Processing/BLAST.$Taxid -evalue 1E-20 -num_threads 20 -outfmt 6' & 
 done
 wait
 echo "Ending : BLAST against the genome : $(date)"
