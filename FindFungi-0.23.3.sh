@@ -78,7 +78,9 @@ if [ ! -d $PreDir ]; then
 #done    
 #wait
 echo "Starting : Kraken : $(date)"
-sbatch -W --array=1-32 --cpus-per-task=10 --job-name=kraken_Fungi --wrap='kraken --preload --db $KrakenDir/Kraken_$SLURM_ARRAY_TASK_ID --threads 10 --fasta-input $PreDir/FASTA/$z.final.fna --output $Dir/Processing/SplitFiles_Kraken/$z.$SLURM_ARRAY_TASK_ID'
+### This is tricky, using single quotes, SLURM_ARRAY_TASK_ID gets expanded
+### with double quotes it does not
+sbatch -W --array=1-32 --cpus-per-task=10 --job-name=kraken_Fungi --wrap='kraken --preload --db ${KrakenDir}/Kraken_${SLURM_ARRAY_TASK_ID} --threads 10 --fasta-input ${PreDir}/FASTA/${z}.final.fna --output ${Dir}/Processing/SplitFiles_Kraken/${z}.${SLURM_ARRAY_TASK_ID}'
 echo "Kraken : Ended: $(date)"
 echo ""
 
@@ -104,7 +106,7 @@ echo "Starting : Sorting SplitFiles_Kraken : $(date)"
 for d in $Dir/Processing/SplitFiles_Kraken/*; do #Sort individual Kraken output files
     File=$(basename $d)
     # bsub -K -q C sort_parallel --parallel 16 -o $Dir/Processing/SplitFiles_Kraken/sorted_$File -k2,2 $d & 
-    sort -k2,2 $d > $Dir/Processing/SplitFiles_Kraken/sorted_$File &
+    sbatch -W --job-name=sort_${File} --mem-per-cpu=30000 --wrap="sort -k2,2 ${d} > ${Dir}/Processing/SplitFiles_Kraken/sorted_${File}" &
 done
 wait
 echo "Ending : SplitFiles_Kraken : $(date)"
@@ -167,7 +169,7 @@ for d in $Dir/Processing/ReadNames_bsub.*.fsa; do
     tail -n +31 $d | head -n -6 > $Dir/Processing/ReadNames.$Taxid.fsa
     # bsub -K -q C blastn -task megablast -query $Dir/Processing/ReadNames.$Taxid.fsa -db $BLAST_DB_Dir/Taxid-$Taxid -out $Dir/Results/BLAST_Processing/BLAST.$Taxid -evalue 1E-20 -num_threads 30 -outfmt 6 &
     #blastn -task megablast -query $Dir/Processing/ReadNames.$Taxid.fsa -db $BLAST_DB_Dir/Taxid-$Taxid -out $Dir/Results/BLAST_Processing/BLAST.$Taxid -evalue 1E-20 -num_threads 20 -outfmt 6 &
-    sbatch -W --job-name=${Taxid} --cpus-per-task=20 --wrap='blastn -task megablast -query $Dir/Processing/ReadNames.$Taxid.fsa -db $BLAST_DB_Dir/Taxid-$Taxid -out $Dir/Results/BLAST_Processing/BLAST.$Taxid -evalue 1E-20 -num_threads 20 -outfmt 6' & 
+    sbatch -W --job-name=${Taxid} --cpus-per-task=20 --wrap="blastn -task megablast -query ${Dir}/Processing/ReadNames.${Taxid}.fsa -db ${BLAST_DB_Dir}/Taxid-${Taxid} -out ${Dir}/Results/BLAST_Processing/BLAST.${Taxid} -evalue 1E-20 -num_threads 20 -outfmt 6" & 
 done
 wait
 echo "Ending : BLAST against the genome : $(date)"

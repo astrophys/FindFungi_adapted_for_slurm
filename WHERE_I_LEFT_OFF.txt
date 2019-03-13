@@ -1,7 +1,8 @@
 Did:
 
-
 To Do:
 1. Replace loops with array jobs run from command line
 2. Provide option to switch number of cpus per task
+3. Once wolfgang has ran his samples without failure, comment out word cloud.
+   He doesn't want them.
 

@@ -32,7 +32,7 @@ from the Paul's recommendations.
 * python 2.7.10 (installed via Anaconda, https://anaconda.com/download. Used pip to install argparse, biopython, ete3)
 * skewer 0.2.2
 * kraken 1.0 (Used previous installation from metawrap, https://github.com/bxlab/metaWRAP)
-* ncbi blast 2.2.31+
+* ncbi blast 2.8.1
 * R-3.4.2 (packages: wordcloud)
 * graphviz 2.26.0 (installed via yum)
 
@@ -40,6 +40,11 @@ I also needed to create symlinks in the Kraken_32DB directory
 (downloaded from http://bioinformatics.czc.hokudai.ac.jp/findfungi/),
 mapping Chunks_i -> Kraken_i (i is an integer from 1->32). I suspect that this is a
 result of the way the original database files were generated.
+
+Note that I'm using a more recent version of blast (see git log) then the version 
+recommended by Paul. I've encountered blast-2.2.31 generating segmentation faults 
+with some sequences. Upgrading to blast-2.8.1, seemed to fix(?) this issue, at least
+it stopped generating segfaults.
 
 ## Acknowledgements:
 Thank you Paul Donovan and Gabriel Gonzalez for all your help and support getting
