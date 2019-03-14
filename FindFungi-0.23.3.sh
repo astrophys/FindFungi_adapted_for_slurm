@@ -242,24 +242,24 @@ cp $Dir/Results/Final_Results_$z-lca.sorted.csv $Dir/${FungalReadPercentage2}_${
 cp $Dir/Results/Final_Results_${z}_AllResults-lca.sorted.csv $Dir/${FungalReadPercentage2}_${z}.Results.IncludingFalsePositives.csv
 
 ### PDF creation
-echo "Not enough fungal reads to create wordcloud" >> $Dir/Results/WordcloudError.txt
-enscript -B -o $Dir/Results/WordcloudError.ps -f Times-Roman12 $Dir/Results/WordcloudError.txt
-ps2pdf $Dir/Results/WordcloudError.ps $Dir/Results/$z.Wordcloud.pdf
-dot -Tps $Dir/Results/$z.gv -o $Dir/Results/$z.TreeLineage.ps
-gs -sDEVICE=pdfwrite -sOutputFile=$Dir/Results/$z.TreeLineage.pdf -dBATCH -dNOPAUSE $Dir/Results/$z.TreeLineage.ps
-pdfcrop $Dir/Results/$z.TreeLineage.pdf $Dir/Results/Cropped.$z.TreeLineage.pdf
-#Rscript-3.3.3 $Dir/Results/$z.WordCloud.R
-/opt/R/3.4.2/bin/Rscript $Dir/Results/$z.WordCloud.R
-cat $FungTaxDir/PipelineSummary.txt $PreDir/SummaryFile.txt $PreDir/Run_Statistics.txt > $PreDir/FindFungi-TextFile.txt
-enscript -B -o $PreDir/FindFungi-TextFile.ps -f Times-Roman12 $PreDir/FindFungi-TextFile.txt
-ps2pdf $PreDir/FindFungi-TextFile.ps $PreDir/FindFungi-TextFile.pdf
-enscript -B -o $Dir/Results/Final_Results_$z-lca.sorted.Fungi.ps -f Times-Roman12 $Dir/Results/Final_Results_$z-lca.sorted.csv
-ps2pdf $Dir/Results/Final_Results_$z-lca.sorted.Fungi.ps $Dir/Results/Final_Results_$z-lca.sorted.Fungi.pdf
-gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -dPDFFitToPage -dPDFSETTINGS=/prepress -sOutputFile=$Dir/${FungalReadPercentage2}_${z}.Results.pdf $PreDir/FindFungi-TextFile.pdf $Dir/Results/$z.Wordcloud.pdf $Dir/Results/Cropped.$z.TreeLineage.pdf $Dir/Results/Final_Results_$z-lca.sorted.Fungi.pdf 
+#echo "Not enough fungal reads to create wordcloud" >> $Dir/Results/WordcloudError.txt
+#enscript -B -o $Dir/Results/WordcloudError.ps -f Times-Roman12 $Dir/Results/WordcloudError.txt
+#ps2pdf $Dir/Results/WordcloudError.ps $Dir/Results/$z.Wordcloud.pdf
+#dot -Tps $Dir/Results/$z.gv -o $Dir/Results/$z.TreeLineage.ps
+#gs -sDEVICE=pdfwrite -sOutputFile=$Dir/Results/$z.TreeLineage.pdf -dBATCH -dNOPAUSE $Dir/Results/$z.TreeLineage.ps
+#pdfcrop $Dir/Results/$z.TreeLineage.pdf $Dir/Results/Cropped.$z.TreeLineage.pdf
+##Rscript-3.3.3 $Dir/Results/$z.WordCloud.R
+#/opt/R/3.4.2/bin/Rscript $Dir/Results/$z.WordCloud.R
+#cat $FungTaxDir/PipelineSummary.txt $PreDir/SummaryFile.txt $PreDir/Run_Statistics.txt > $PreDir/FindFungi-TextFile.txt
+#enscript -B -o $PreDir/FindFungi-TextFile.ps -f Times-Roman12 $PreDir/FindFungi-TextFile.txt
+#ps2pdf $PreDir/FindFungi-TextFile.ps $PreDir/FindFungi-TextFile.pdf
+#enscript -B -o $Dir/Results/Final_Results_$z-lca.sorted.Fungi.ps -f Times-Roman12 $Dir/Results/Final_Results_$z-lca.sorted.csv
+#ps2pdf $Dir/Results/Final_Results_$z-lca.sorted.Fungi.ps $Dir/Results/Final_Results_$z-lca.sorted.Fungi.pdf
+#gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -dPDFFitToPage -dPDFSETTINGS=/prepress -sOutputFile=$Dir/${FungalReadPercentage2}_${z}.Results.pdf $PreDir/FindFungi-TextFile.pdf $Dir/Results/$z.Wordcloud.pdf $Dir/Results/Cropped.$z.TreeLineage.pdf $Dir/Results/Final_Results_$z-lca.sorted.Fungi.pdf 
 # wait
 
 ### Clean up
-mv *.std* $Dir/bsub_reports/
+#mv *.std* $Dir/bsub_reports/
 #rm -rf $PreDir  #Uncomment to remove all intermediate files. Keep in mind you will need to copy or move the results files to a safe directory prior to this step.
 
 fi
